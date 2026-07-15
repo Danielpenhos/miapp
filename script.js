@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   var fallbackNews = [
-    { tag: 'Analisis', title: 'Las claves tacticas que estan definiendo la temporada', text: 'Un vistazo a los esquemas ofensivos y defensivos que dominan la liga esta campana.', meta: 'Redaccion' }
+    { tag: 'Analisis', title: 'Las claves tacticas que estan definiendo la temporada', text: 'Un vistazo a los esquemas ofensivos y defensivos que dominan la liga esta campana.', meta: 'Redaccion', link: 'https://www.espn.com/nfl/' }
   ];
 
   var games = { live: [], upcoming: [], final: [] };
@@ -279,6 +279,19 @@ document.addEventListener('DOMContentLoaded', function () {
     return 'hace ' + days + ' d';
   }
 
+  function newsCardHtml(tag, title, text, meta, link) {
+    var openTag = link ? ('<a class="news-card" href="' + link + '" target="_blank" rel="noopener noreferrer">') : '<div class="news-card">';
+    var closeTag = link ? '</a>' : '</div>';
+    return (
+      openTag +
+        '<span class="news-tag">' + tag + '</span>' +
+        '<h3>' + title + '</h3>' +
+        '<p>' + text + '</p>' +
+        '<div class="news-meta"><span>' + meta + '</span><span class="news-link-hint">' + (link ? 'Leer en ESPN &rarr;' : '') + '</span></div>' +
+      closeTag
+    );
+  }
+
   function loadNews() {
     var grid = document.getElementById('newsGrid');
     grid.innerHTML = '<p style="text-align:center; color:var(--muted); grid-column:1/-1;">Cargando noticias...</p>';
@@ -289,27 +302,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!articles.length) { throw new Error('sin articulos'); }
         grid.innerHTML = articles.map(function (a) {
           var tag = (a.categories && a.categories[0] && a.categories[0].description) || 'NFL';
-          var link = a.links && a.links.web ? a.links.web.href : '#';
-          return (
-            '<a class="news-card" href="' + link + '" target="_blank" rel="noopener" style="display:block; color:inherit;">' +
-              '<span class="news-tag">' + tag + '</span>' +
-              '<h3>' + a.headline + '</h3>' +
-              '<p>' + (a.description || '') + '</p>' +
-              '<div class="news-meta"><span>ESPN &middot; ' + timeAgo(a.published) + '</span></div>' +
-            '</a>'
-          );
+          var link = (a.links && a.links.web && a.links.web.href) ? a.links.web.href : null;
+          return newsCardHtml(tag, a.headline, a.description || '', 'ESPN &middot; ' + timeAgo(a.published), link);
         }).join('');
       })
       .catch(function () {
         grid.innerHTML = fallbackNews.map(function (n) {
-          return (
-            '<div class="news-card">' +
-              '<span class="news-tag">' + n.tag + '</span>' +
-              '<h3>' + n.title + '</h3>' +
-              '<p>' + n.text + '</p>' +
-              '<div class="news-meta"><span>' + n.meta + '</span></div>' +
-            '</div>'
-          );
+          return newsCardHtml(n.tag, n.title, n.text, n.meta, n.link);
         }).join('');
       });
   }
