@@ -1,1 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gridiron Central | NFL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+<div class="bg-noise"></div>
+
+<header class="site-header">
+<div class="container header-inner">
+<a href="#top" class="logo">
+<span class="logo-icon">🏈</span>
+<span class="logo-text">GRIDIRON <span>CENTRAL</span></span>
+</a>
+<nav class="main-nav">
+<a href="#conferences">Conferencias</a>
+<a href="#scores">Marcadores</a>
+<a href="#teams">Equipos</a>
+<a href="#news">Noticias</a>
+<a href="#countdown">Playoffs</a>
+</nav>
+<button class="burger" id="burgerBtn" aria-label="Abrir menu">
+<span></span><span></span><span></span>
+</button>
+</div>
+</header>
+
+<section class="hero" id="top">
+<div class="hero-glow"></div>
+<div class="container hero-inner">
+<p class="eyebrow">Temporada 2026 &middot; Semana 15</p>
+<h1>Toda la accion de la <span class="highlight">NFL</span> en un solo lugar</h1>
+<p class="hero-sub">Marcadores en vivo, standings, calendario de playoffs y las noticias mas calientes de las 32 franquicias.</p>
+<div class="hero-actions">
+<a href="#scores" class="btn btn-primary">Ver marcadores</a>
+<a href="#teams" class="btn btn-outline">Explorar equipos</a>
+</div>
+<div class="hero-stats">
+<div class="stat"><strong>32</strong><span>Equipos</span></div>
+<div class="stat"><strong>18</strong><span>Semanas</span></div>
+<div class="stat"><strong>272</strong><span>Juegos</span></div>
+</div>
+</div>
+</section>
+
+<section class="ticker">
+<div class="ticker-track" id="tickerTrack"></div>
+</section>
+
+<main>
+
+<section class="section" id="scores">
+<div class="container">
+<div class="section-head">
+<h2>Marcadores de la semana</h2>
+<p>Resultados y proximos duelos destacados</p>
+</div>
+<div class="tabs" id="scoreTabs">
+<button class="tab active" data-tab="live">En vivo</button>
+<button class="tab" data-tab="upcoming">Proximos</button>
+<button class="tab" data-tab="final">Finalizados</button>
+</div>
+<div class="games-grid" id="gamesGrid"></div>
+</div>
+</section>
+
+<section class="section alt" id="conferences">
+<div class="container">
+<div class="section-head">
+<h2>Standings por conferencia</h2>
+<p>Los mejores registros de AFC y NFC</p>
+</div>
+<div class="standings-grid" id="standingsGrid"></div>
+</div>
+</section>
+
+<section class="section" id="teams">
+<div class="container">
+<div class="section-head">
+<h2>Equipos de la NFL</h2>
+<p>Filtra por division y descubre a cada franquicia</p>
+</div>
+<div class="filters" id="teamFilters"></div>
+<div class="teams-grid" id="teamsGrid"></div>
+</div>
+</section>
+
+<section class="section alt" id="news">
+<div class="container">
+<div class="section-head">
+<h2>Ultimas noticias</h2>
+<p>Lo mas relevante fuera y dentro del campo</p>
+</div>
+<div class="news-grid" id="newsGrid"></div>
+</div>
+</section>
+
+<section class="section countdown-section" id="countdown">
+<div class="container countdown-inner">
+<div class="section-head light">
+<h2>Cuenta regresiva para el Super Bowl</h2>
+<p>El camino a la gloria continua</p>
+</div>
+<div class="countdown-grid" id="countdownGrid">
+<div class="cd-box"><span id="cdDays">00</span><small>Dias</small></div>
+<div class="cd-box"><span id="cdHours">00</span><small>Horas</small></div>
+<div class="cd-box"><span id="cdMinutes">00</span><small>Min</small></div>
+<div class="cd-box"><span id="cdSeconds">00</span><small>Seg</small></div>
+</div>
+</div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+<div class="container footer-inner">
+<div class="footer-brand">
+<span class="logo-icon">🏈</span>
+<span class="logo-text">GRIDIRON <span>CENTRAL</span></span>
+<p>Fan site no oficial creado por pasion al futbol americano.</p>
+</div>
+<div class="footer-links">
+<div>
+<h4>Explorar</h4>
+<a href="#scores">Marcadores</a>
+<a href="#teams">Equipos</a>
+<a href="#news">Noticias</a>
+</div>
+<div>
+<h4>Liga</h4>
+<a href="#conferences">AFC</a>
+<a href="#conferences">NFC</a>
+<a href="#countdown">Playoffs</a>
+</div>
+</div>
+</div>
+<div class="container footer-bottom">
+<p>&copy; <span id="year"></span> Gridiron Central. Proyecto fan hecho con HTML, CSS y JS.</p>
+</div>
+</footer>
+
+<button class="scroll-top" id="scrollTopBtn" aria-label="Subir">^</button>
+
+<script src="script.js"></script>
+</body>
+</html>
