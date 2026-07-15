@@ -341,4 +341,147 @@ loadStandings();
 loadNews();
 setInterval(loadGames, 60000);
 
+ // ---------- Arma tu Lineup Perfecto ----------
+ var LINEUP_POSITIONS = [
+  { key: 'QB', label: 'Quarterback', players: [
+   { name: 'Patrick Mahomes (KC)', rating: 99 },
+   { name: 'Josh Allen (BUF)', rating: 97 },
+   { name: 'Lamar Jackson (BAL)', rating: 96 },
+   { name: 'Joe Burrow (CIN)', rating: 95 },
+   { name: 'Jalen Hurts (PHI)', rating: 92 },
+   { name: 'C.J. Stroud (HOU)', rating: 90 },
+   { name: 'Justin Herbert (LAC)', rating: 89 },
+   { name: 'Jayden Daniels (WSH)', rating: 88 }
+   ] },
+  { key: 'RB', label: 'Running Back', players: [
+   { name: 'Christian McCaffrey (SF)', rating: 97 },
+   { name: 'Saquon Barkley (PHI)', rating: 96 },
+   { name: 'Bijan Robinson (ATL)', rating: 93 },
+   { name: 'Jahmyr Gibbs (DET)', rating: 92 },
+   { name: 'Derrick Henry (BAL)', rating: 91 },
+   { name: 'Jonathan Taylor (IND)', rating: 89 },
+   { name: 'Breece Hall (NYJ)', rating: 87 },
+   { name: 'Kyren Williams (LAR)', rating: 86 }
+   ] },
+  { key: 'WR1', label: 'Wide Receiver 1', players: [
+   { name: 'Justin Jefferson (MIN)', rating: 99 },
+   { name: 'Ja\'Marr Chase (CIN)', rating: 98 },
+   { name: 'CeeDee Lamb (DAL)', rating: 96 },
+   { name: 'Tyreek Hill (MIA)', rating: 95 },
+   { name: 'Amon-Ra St. Brown (DET)', rating: 94 }
+   ] },
+  { key: 'WR2', label: 'Wide Receiver 2', players: [
+   { name: 'A.J. Brown (PHI)', rating: 93 },
+   { name: 'Puka Nacua (LAR)', rating: 91 },
+   { name: 'Malik Nabers (NYG)', rating: 90 },
+   { name: 'Garrett Wilson (NYJ)', rating: 89 },
+   { name: 'Stefon Diggs (NE)', rating: 86 }
+   ] },
+  { key: 'TE', label: 'Tight End', players: [
+   { name: 'Travis Kelce (KC)', rating: 94 },
+   { name: 'Brock Bowers (LV)', rating: 90 },
+   { name: 'George Kittle (SF)', rating: 90 },
+   { name: 'Sam LaPorta (DET)', rating: 89 },
+   { name: 'Trey McBride (ARI)', rating: 89 },
+   { name: 'Mark Andrews (BAL)', rating: 86 }
+   ] },
+  { key: 'FLEX', label: 'Flex (RB/WR/TE)', players: [
+   { name: 'Nico Collins (HOU)', rating: 90 },
+   { name: 'DeVonta Smith (PHI)', rating: 88 },
+   { name: 'Josh Jacobs (GB)', rating: 87 },
+   { name: 'Chris Olave (NO)', rating: 86 },
+   { name: 'Kenneth Walker III (SEA)', rating: 85 },
+   { name: 'Rachaad White (TB)', rating: 81 }
+   ] },
+  { key: 'K', label: 'Kicker', players: [
+   { name: 'Brandon Aubrey (DAL)', rating: 93 },
+   { name: 'Harrison Butker (KC)', rating: 89 },
+   { name: 'Justin Tucker (BAL)', rating: 88 },
+   { name: 'Jake Elliott (PHI)', rating: 85 }
+   ] },
+  { key: 'DEF', label: 'Defensa / Special Teams', players: [
+   { name: '49ers D/ST', rating: 92 },
+   { name: 'Ravens D/ST', rating: 91 },
+   { name: 'Steelers D/ST', rating: 88 },
+   { name: 'Cowboys D/ST', rating: 87 },
+   { name: 'Jets D/ST', rating: 86 },
+   { name: 'Browns D/ST', rating: 85 }
+   ] }
+  ];
+
+ function initLineupBuilder() {
+  var grid = document.getElementById('lineupGrid');
+  if (!grid) return;
+
+  grid.innerHTML = LINEUP_POSITIONS.map(function (pos) {
+   var options = pos.players.map(function (p, i) {
+    return '<option value="' + p.rating + '"' + (i === 0 ? ' selected' : '') + '>' + p.name + ' - ' + p.rating + '</option>';
+   }).join('');
+   return (
+    '<div class="lineup-slot">' +
+    '<label>' + pos.label + '</label>' +
+    '<select class="lineup-select" data-pos="' + pos.key + '">' + options + '</select>' +
+    '<div class="slot-rating"><span class="badge-rating">' + pos.players[0].rating + '</span></div>' +
+    '</div>'
+    );
+  }).join('');
+
+  grid.querySelectorAll('.lineup-select').forEach(function (sel) {
+   sel.addEventListener('change', function () {
+    var badge = sel.closest('.lineup-slot').querySelector('.badge-rating');
+    badge.textContent = sel.value;
+    updateTeamRating();
+   });
+  });
+
+  var calcBtn = document.getElementById('calcLineupBtn');
+  if (calcBtn) calcBtn.addEventListener('click', updateTeamRating);
+
+  var randomBtn = document.getElementById('randomLineupBtn');
+  if (randomBtn) {
+   randomBtn.addEventListener('click', function () {
+    grid.querySelectorAll('.lineup-select').forEach(function (sel) {
+     var idx = Math.floor(Math.random() * sel.options.length);
+     sel.selectedIndex = idx;
+     sel.closest('.lineup-slot').querySelector('.badge-rating').textContent = sel.value;
+    });
+    updateTeamRating();
+   });
+  }
+
+  updateTeamRating();
+ }
+
+ function updateTeamRating() {
+  var selects = document.querySelectorAll('.lineup-select');
+  if (!selects.length) return;
+  var total = 0;
+  selects.forEach(function (sel) { total += parseInt(sel.value, 10); });
+  var avg = Math.round(total / selects.length);
+
+  var numberEl = document.getElementById('teamRatingNumber');
+  var tierEl = document.getElementById('teamRatingTier');
+  var card = document.getElementById('ratingCard');
+  if (!numberEl || !tierEl || !card) return;
+
+  numberEl.textContent = avg;
+
+  var tier = 'Reconstruccion total';
+  if (avg >= 95) tier = 'Dinastia / GOAT team';
+  else if (avg >= 90) tier = 'Contendiente al Super Bowl';
+  else if (avg >= 85) tier = 'Playoff lock';
+  else if (avg >= 78) tier = 'Pelea por Wild Card';
+  else if (avg >= 70) tier = 'Equipo en desarrollo';
+  tierEl.textContent = tier;
+
+  card.classList.remove('tier-elite', 'tier-good', 'tier-mid', 'tier-low');
+  if (avg >= 90) card.classList.add('tier-elite');
+  else if (avg >= 80) card.classList.add('tier-good');
+  else if (avg >= 70) card.classList.add('tier-mid');
+  else card.classList.add('tier-low');
+ }
+
+ initLineupBuilder();
+
+
 });
