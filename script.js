@@ -1,5 +1,9 @@
 // Gridiron Central - script.js
+// Conectado a la API publica de ESPN para datos reales de la NFL
 document.addEventListener('DOMContentLoaded', function () {
+
+  var API_BASE = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
+  var API_CORE = 'https://site.api.espn.com/apis/v2/sports/football/nfl';
 
   // Footer year
   var yearEl = document.getElementById('year');
@@ -27,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-  // ---------- Team data (32 franquicias) ----------
+  // ---------- Team data (32 franquicias, para colores y divisiones) ----------
   var teams = [
     { name: 'Bills', abbr: 'BUF', div: 'AFC Este', color: '#00338d' },
     { name: 'Dolphins', abbr: 'MIA', div: 'AFC Este', color: '#008e97' },
@@ -48,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
     { name: 'Cowboys', abbr: 'DAL', div: 'NFC Este', color: '#041e42' },
     { name: 'Giants', abbr: 'NYG', div: 'NFC Este', color: '#0b2265' },
     { name: 'Eagles', abbr: 'PHI', div: 'NFC Este', color: '#004c54' },
-    { name: 'Commanders', abbr: 'WAS', div: 'NFC Este', color: '#5a1414' },
+    { name: 'Commanders', abbr: 'WSH', div: 'NFC Este', color: '#5a1414' },
     { name: 'Bears', abbr: 'CHI', div: 'NFC Norte', color: '#0b162a' },
     { name: 'Lions', abbr: 'DET', div: 'NFC Norte', color: '#0076b6' },
     { name: 'Packers', abbr: 'GB', div: 'NFC Norte', color: '#203731' },
@@ -65,46 +69,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function findTeam(abbr) {
     for (var i = 0; i < teams.length; i++) if (teams[i].abbr === abbr) return teams[i];
-    return teams[0];
+    return null;
   }
 
-  function badge(abbr) {
+  function badge(abbr, fallbackColor, fallbackName) {
     var t = findTeam(abbr);
-    return '<span class="team-badge" style="background:' + t.color + '">' + t.abbr + '</span>';
+    var color = t ? t.color : (fallbackColor || '#334');
+    var label = t ? t.abbr : (abbr || '?');
+    return '<span class="team-badge" style="background:' + color + '">' + label + '</span>';
   }
 
-  // ---------- Ticker ----------
-  var tickerItems = [
-    'Semana 15 en marcha en toda la NFL',
-    'Los playoffs se acercan: cada juego cuenta',
-    'MVP watch: candidatos que estan on fire',
-    'Rookies que estan cambiando el juego',
-    'Rivalidades historicas se reavivan este mes'
-  ];
-  var track = document.getElementById('tickerTrack');
-  if (track) {
-    var doubled = tickerItems.concat(tickerItems);
-    track.innerHTML = doubled.map(function (t) { return '<span>&#9679; ' + t + '</span>'; }).join('');
+  function teamLabel(abbr, fallbackName) {
+    var t = findTeam(abbr);
+    return t ? t.name : (fallbackName || abbr);
   }
 
-  // ---------- Games ----------
-  var games = {
+  // ---------- Fallback data (por si la API no responde) ----------
+  var fallbackGames = {
     live: [
-      { home: 'KC', away: 'BUF', hs: 20, as: 17, meta: 'Q3 &middot; 08:41 &middot; Arrowhead Stadium' },
-      { home: 'SF', away: 'DAL', hs: 14, as: 10, meta: 'Q2 &middot; 02:15 &middot; Levi Stadium' },
-      { home: 'PHI', away: 'MIA', hs: 24, as: 21, meta: 'Q4 &middot; 05:02 &middot; Lincoln Financial Field' }
+      { home: 'KC', away: 'BUF', hs: 20, as: 17, meta: 'Q3 &middot; 08:41 &middot; Arrowhead Stadium' }
     ],
     upcoming: [
-      { home: 'BAL', away: 'CIN', hs: null, as: null, meta: 'Domingo &middot; 1:00 PM &middot; M&amp;T Bank Stadium' },
-      { home: 'GB', away: 'MIN', hs: null, as: null, meta: 'Domingo &middot; 4:25 PM &middot; Lambeau Field' },
-      { home: 'DET', away: 'CHI', hs: null, as: null, meta: 'Jueves &middot; 8:15 PM &middot; Ford Field' }
+      { home: 'BAL', away: 'CIN', hs: null, as: null, meta: 'Domingo &middot; 1:00 PM &middot; M&amp;T Bank Stadium' }
     ],
     final: [
-      { home: 'SEA', away: 'ARI', hs: 27, as: 20, meta: 'Final &middot; Lumen Field' },
-      { home: 'NE', away: 'NYJ', hs: 16, as: 13, meta: 'Final &middot; Gillette Stadium' },
-      { home: 'LAR', away: 'CAR', hs: 31, as: 12, meta: 'Final &middot; SoFi Stadium' }
+      { home: 'SEA', away: 'ARI', hs: 27, as: 20, meta: 'Final &middot; Lumen Field' }
     ]
   };
+
+  var fallbackNews = [
+    { tag: 'Analisis', title: 'Las claves tacticas que estan definiendo la temporada', text: 'Un vistazo a los esquemas ofensivos y defensivos que dominan la liga esta campana.', meta: 'Redaccion' }
+  ];
+
+  var games = { live: [], upcoming: [], final: [] };
+  var currentTab = 'live';
 
   function statusLabel(tab) {
     if (tab === 'live') return '<span class="dot"></span> En vivo';
@@ -113,20 +111,24 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderGames(tab) {
+    currentTab = tab;
     var grid = document.getElementById('gamesGrid');
     var list = games[tab] || [];
+    if (!list.length) {
+      grid.innerHTML = '<p style="text-align:center; color:var(--muted); grid-column:1/-1;">No hay juegos en esta categoria por ahora.</p>';
+      return;
+    }
     grid.innerHTML = list.map(function (g) {
-      var homeT = findTeam(g.home), awayT = findTeam(g.away);
-      var scoreHtml = (g.hs === null)
+      var scoreHtml = (g.hs === null || g.hs === undefined)
         ? '<span class="score">VS</span>'
         : '<span class="score">' + g.as + ' - ' + g.hs + '</span>';
       return (
         '<div class="game-card">' +
           '<span class="game-status ' + tab + '">' + statusLabel(tab) + '</span>' +
           '<div class="matchup">' +
-            '<div class="team-row">' + badge(awayT.abbr) + '<span class="team-name">' + awayT.name + '</span></div>' +
+            '<div class="team-row">' + badge(g.away, g.awayColor, g.awayName) + '<span class="team-name">' + teamLabel(g.away, g.awayName) + '</span></div>' +
             scoreHtml +
-            '<div class="team-row">' + badge(homeT.abbr) + '<span class="team-name">' + homeT.name + '</span></div>' +
+            '<div class="team-row">' + badge(g.home, g.homeColor, g.homeName) + '<span class="team-name">' + teamLabel(g.home, g.homeName) + '</span></div>' +
           '</div>' +
           '<div class="game-meta">' + g.meta + '</div>' +
         '</div>'
@@ -142,44 +144,100 @@ document.addEventListener('DOMContentLoaded', function () {
       renderGames(btn.getAttribute('data-tab'));
     });
   });
-  renderGames('live');
 
-  // ---------- Standings ----------
-  var standings = {
-    AFC: [
-      { abbr: 'KC', rec: '11-3' },
-      { abbr: 'BUF', rec: '10-4' },
-      { abbr: 'BAL', rec: '9-5' },
-      { abbr: 'HOU', rec: '9-5' },
-      { abbr: 'PIT', rec: '8-6' }
-    ],
-    NFC: [
-      { abbr: 'DET', rec: '12-2' },
-      { abbr: 'PHI', rec: '10-4' },
-      { abbr: 'SF', rec: '9-5' },
-      { abbr: 'GB', rec: '9-5' },
-      { abbr: 'TB', rec: '8-6' }
-    ]
-  };
-
-  var standingsGrid = document.getElementById('standingsGrid');
-  if (standingsGrid) {
-    var confKeys = Object.keys(standings);
-    standingsGrid.innerHTML = confKeys.map(function (conf) {
-      var rows = standings[conf].map(function (row, idx) {
-        var t = findTeam(row.abbr);
-        return (
-          '<div class="standings-row">' +
-            '<div class="team-row"><span class="rank">' + (idx + 1) + '</span>' + badge(t.abbr) + '<span class="team-name">' + t.name + '</span></div>' +
-            '<span class="record">' + row.rec + '</span>' +
-          '</div>'
-        );
-      }).join('');
-      return '<div class="standings-card"><h3>Conferencia ' + conf + '</h3><div class="standings-list">' + rows + '</div></div>';
-    }).join('');
+  // ---------- Cargar marcadores reales desde la API de ESPN ----------
+  function loadGames() {
+    var grid = document.getElementById('gamesGrid');
+    grid.innerHTML = '<p style="text-align:center; color:var(--muted); grid-column:1/-1;">Cargando marcadores en vivo...</p>';
+    fetch(API_BASE + '/scoreboard')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var live = [], upcoming = [], final = [];
+        (data.events || []).forEach(function (ev) {
+          var comp = ev.competitions[0];
+          var state = comp.status.type.state;
+          var home = comp.competitors.find(function (c) { return c.homeAway === 'home'; });
+          var away = comp.competitors.find(function (c) { return c.homeAway === 'away'; });
+          var meta = comp.status.type.shortDetail + (comp.venue ? ' &middot; ' + comp.venue.fullName : '');
+          var item = {
+            home: home.team.abbreviation, away: away.team.abbreviation,
+            homeColor: '#' + (home.team.color || '334'), awayColor: '#' + (away.team.color || '334'),
+            homeName: home.team.displayName, awayName: away.team.displayName,
+            hs: state === 'pre' ? null : home.score, as: state === 'pre' ? null : away.score,
+            meta: meta
+          };
+          if (state === 'in') live.push(item);
+          else if (state === 'post') final.push(item);
+          else upcoming.push(item);
+        });
+        games.live = live.length ? live : fallbackGames.live;
+        games.upcoming = upcoming.length ? upcoming : fallbackGames.upcoming;
+        games.final = final.length ? final : fallbackGames.final;
+        renderGames(currentTab);
+      })
+      .catch(function () {
+        games = fallbackGames;
+        renderGames(currentTab);
+      });
   }
 
-  // ---------- Teams grid + filters ----------
+  // ---------- Ticker ----------
+  var tickerFallback = [
+    'Semana en marcha en toda la NFL',
+    'Los playoffs se acercan: cada juego cuenta',
+    'MVP watch: candidatos que estan on fire',
+    'Rookies que estan cambiando el juego'
+  ];
+  function renderTicker(items) {
+    var track = document.getElementById('tickerTrack');
+    if (!track) return;
+    var doubled = items.concat(items);
+    track.innerHTML = doubled.map(function (t) { return '<span>&#9679; ' + t + '</span>'; }).join('');
+  }
+  renderTicker(tickerFallback);
+
+  // ---------- Standings reales ----------
+  function statVal(entry, name) {
+    var s = entry.stats.find(function (x) { return x.name === name; });
+    return s ? s.displayValue : '-';
+  }
+
+  function loadStandings() {
+    var grid = document.getElementById('standingsGrid');
+    grid.innerHTML = '<p style="text-align:center; color:var(--muted); grid-column:1/-1;">Cargando standings...</p>';
+    fetch(API_CORE + '/standings')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var confs = data.children.map(function (conf) {
+          var entries = conf.standings.entries.slice();
+          entries.sort(function (a, b) {
+            var wa = a.stats.find(function (s) { return s.name === 'wins'; });
+            var wb = b.stats.find(function (s) { return s.name === 'wins'; });
+            return (wb ? wb.value : 0) - (wa ? wa.value : 0);
+          });
+          return { name: conf.abbreviation || conf.name, entries: entries.slice(0, 5) };
+        });
+        grid.innerHTML = confs.map(function (conf) {
+          var rows = conf.entries.map(function (e, idx) {
+            var abbr = e.team.abbreviation;
+            var wins = statVal(e, 'wins');
+            var losses = statVal(e, 'losses');
+            return (
+              '<div class="standings-row">' +
+                '<div class="team-row"><span class="rank">' + (idx + 1) + '</span>' + badge(abbr) + '<span class="team-name">' + teamLabel(abbr, e.team.displayName) + '</span></div>' +
+                '<span class="record">' + wins + '-' + losses + '</span>' +
+              '</div>'
+            );
+          }).join('');
+          return '<div class="standings-card"><h3>Conferencia ' + conf.name + '</h3><div class="standings-list">' + rows + '</div></div>';
+        }).join('');
+      })
+      .catch(function () {
+        grid.innerHTML = '<p style="text-align:center; color:var(--muted); grid-column:1/-1;">No se pudieron cargar los standings en este momento.</p>';
+      });
+  }
+
+  // ---------- Teams grid + filters (datos locales) ----------
   var divisions = ['Todas'].concat(Array.from(new Set(teams.map(function (t) { return t.div; }))));
   var filtersEl = document.getElementById('teamFilters');
   var teamsGrid = document.getElementById('teamsGrid');
@@ -211,31 +269,52 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   renderTeams('Todas');
 
-  // ---------- News ----------
-  var news = [
-    { tag: 'Analisis', title: 'Las claves tacticas que estan definiendo la temporada', text: 'Un vistazo a los esquemas ofensivos y defensivos que dominan la liga esta campana.', meta: 'Redaccion &middot; hace 2 h' },
-    { tag: 'Lesiones', title: 'Reporte de lesiones antes de la jornada dominical', text: 'Actualizacion sobre los jugadores clave que podrian perderse el proximo partido.', meta: 'Redaccion &middot; hace 5 h' },
-    { tag: 'Playoffs', title: 'Como luce la carrera por la postemporada', text: 'Repasamos los escenarios posibles para los equipos que pelean por un lugar en playoffs.', meta: 'Redaccion &middot; hace 8 h' },
-    { tag: 'Draft', title: 'Prospectos universitarios que ilusionan a los scouts', text: 'Los nombres que ya suenan de cara a la proxima clase de novatos.', meta: 'Redaccion &middot; hace 1 d' },
-    { tag: 'Entrevista', title: 'La mentalidad detras de las remontadas de esta temporada', text: 'Jugadores y entrenadores comparten como se preparan para los momentos de presion.', meta: 'Redaccion &middot; hace 1 d' },
-    { tag: 'Estadisticas', title: 'Los numeros que explican el nivel ofensivo actual', text: 'Un analisis de las tendencias estadisticas mas relevantes de la liga.', meta: 'Redaccion &middot; hace 2 d' }
-  ];
-
-  var newsGrid = document.getElementById('newsGrid');
-  if (newsGrid) {
-    newsGrid.innerHTML = news.map(function (n) {
-      return (
-        '<div class="news-card">' +
-          '<span class="news-tag">' + n.tag + '</span>' +
-          '<h3>' + n.title + '</h3>' +
-          '<p>' + n.text + '</p>' +
-          '<div class="news-meta"><span>' + n.meta + '</span></div>' +
-        '</div>'
-      );
-    }).join('');
+  // ---------- Noticias reales desde la API de ESPN ----------
+  function timeAgo(dateStr) {
+    var diffMs = Date.now() - new Date(dateStr).getTime();
+    var hours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (hours < 1) return 'hace instantes';
+    if (hours < 24) return 'hace ' + hours + ' h';
+    var days = Math.floor(hours / 24);
+    return 'hace ' + days + ' d';
   }
 
-  // ---------- Countdown to Super Bowl ----------
+  function loadNews() {
+    var grid = document.getElementById('newsGrid');
+    grid.innerHTML = '<p style="text-align:center; color:var(--muted); grid-column:1/-1;">Cargando noticias...</p>';
+    fetch(API_BASE + '/news')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var articles = (data.articles || []).slice(0, 6);
+        if (!articles.length) { throw new Error('sin articulos'); }
+        grid.innerHTML = articles.map(function (a) {
+          var tag = (a.categories && a.categories[0] && a.categories[0].description) || 'NFL';
+          var link = a.links && a.links.web ? a.links.web.href : '#';
+          return (
+            '<a class="news-card" href="' + link + '" target="_blank" rel="noopener" style="display:block; color:inherit;">' +
+              '<span class="news-tag">' + tag + '</span>' +
+              '<h3>' + a.headline + '</h3>' +
+              '<p>' + (a.description || '') + '</p>' +
+              '<div class="news-meta"><span>ESPN &middot; ' + timeAgo(a.published) + '</span></div>' +
+            '</a>'
+          );
+        }).join('');
+      })
+      .catch(function () {
+        grid.innerHTML = fallbackNews.map(function (n) {
+          return (
+            '<div class="news-card">' +
+              '<span class="news-tag">' + n.tag + '</span>' +
+              '<h3>' + n.title + '</h3>' +
+              '<p>' + n.text + '</p>' +
+              '<div class="news-meta"><span>' + n.meta + '</span></div>' +
+            '</div>'
+          );
+        }).join('');
+      });
+  }
+
+  // ---------- Countdown al Super Bowl ----------
   var targetDate = new Date('2027-02-07T23:30:00');
   function updateCountdown() {
     var now = new Date();
@@ -256,5 +335,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   updateCountdown();
   setInterval(updateCountdown, 1000);
+
+  // ---------- Inicializar llamadas a la API ----------
+  loadGames();
+  loadStandings();
+  loadNews();
+  setInterval(loadGames, 60000);
 
 });
