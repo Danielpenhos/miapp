@@ -302,8 +302,8 @@ var articles = (data.articles || []).slice(0, 6);
 if (!articles.length) { throw new Error('sin articulos'); }
 grid.innerHTML = articles.map(function (a) {
 var tag = (a.categories && a.categories[0] && a.categories[0].description) || 'NFL';
-var link = 'https://www.google.com/search?q=' + encodeURIComponent(a.headline + ' ESPN NFL');
-return newsCardHtml(tag, a.headline, a.description || '', 'ESPN &middot; ' + timeAgo(a.published), link);
+var link = (a.links && a.links.web && a.links.web.href) ? a.links.web.href : 'https://www.espn.com/nfl/';
+ return newsCardHtml(tag, a.headline, a.description || '', 'ESPN &middot; ' + timeAgo(a.published), link);
 }).join('');
 })
 .catch(function () {
